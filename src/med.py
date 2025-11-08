@@ -21,7 +21,9 @@ import re
 from rouge_score import rouge_scorer
 from IPython.display import display 
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cpu"
+if torch.cuda.is_available():
+  device = "cuda"
 
 try:
 	nltk.data.find('corpora/wordnet')
@@ -38,13 +40,18 @@ DATA_DIR = BASE_DIR + "/data"
 MODELS_DIR = BASE_DIR + "/models"
 IMAGE_DIR = DATA_DIR + "/archive/images/images_normalized"
 OUTPUTS_DIR = BASE_DIR + "/outputs"
+ARCHIVE_S_DIR = BASE_DIR + "/archive"
 ORIGINAL_MASK_DIR = OUTPUTS_DIR + "/original_masked_outputs"
 INPAINTING_OUTPUTS_DIR = OUTPUTS_DIR + "/inpainting_outputs"
+
+os.makedirs(DATA_DIR, exist_ok=True)
+os.makedirs(OUTPUTS_DIR, exist_ok=True)
+os.makedirs(MODELS_DIR, exist_ok=True)
 os.makedirs(ORIGINAL_MASK_DIR, exist_ok=True)
 os.makedirs(INPAINTING_OUTPUTS_DIR, exist_ok=True)
 os.makedirs(INPAINTING_OUTPUTS_DIR + "/sd_1_5_outputs", exist_ok=True)
 os.makedirs(INPAINTING_OUTPUTS_DIR + "/sd_2_outputs", exist_ok=True)
-# os.makedirs(INPAINTING_OUTPUTS_DIR + "/sd_3_outputs", exist_ok=True)
+os.makedirs(INPAINTING_OUTPUTS_DIR + "/sd_3_outputs", exist_ok=True)
 
 def color_quantize(patch, k=8):
     Z = patch.reshape((-1, 3)).astype(np.float32)
