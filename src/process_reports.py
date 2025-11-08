@@ -43,12 +43,26 @@ def get_csv_row(csv_file, row_number):
 
 def get_csv_findings(csv_file, row_number):
     row = get_csv_row(csv_file, row_number)
-    findings = row['findings']
-    if pd.isna(findings):
+    
+    if pd.isna(row['findings']):
         if pd.isna(row['impression']):
-            return str('No acute cardiopulmonary findings.')
-        return str('impression')
-    return str(findings)
+            return "No acute cardiopulmonary findings."
+        impression = str(row['impression'])
+        words = impression.split()
+        filtered_words = []
+        for word in words:
+            if 'xx' not in word.lower():
+                filtered_words.append(word)
+        impression = ' '.join(filtered_words)
+        return impression
+
+    findings = str(row['findings'])
+    words = findings.split()
+    filtered_words = []
+    for word in words:
+        if 'xx' not in word.lower():
+            filtered_words.append(word)
+    return ' '.join(filtered_words)
 
 def get_findings(image_name, csv_file):
     row_number = get_row_number(image_name) - 1
@@ -67,6 +81,8 @@ def mask_inpaint(image_path, image_name, findings):
     torch.cuda.empty_cache()
     SD_2 = med.StableDiffusionInpaintPipeline.from_pretrained(med.MODELS_DIR + "/sd_2_inpainting").to(med.device)
     torch.cuda.empty_cache()
+    # SD_3 = med.StableDiffusionInpaintPipeline.from_pretrained(med.MODELS_DIR + "/sd_3_inpainting").to(med.device)
+    # torch.cuda.empty_cache()
     
     # SD 1.5
     SD_1_5_mask = med.inpaint_with_SD_1_5(SD_1_5, center_mask, mask_image, findings, None)
@@ -78,16 +94,23 @@ def mask_inpaint(image_path, image_name, findings):
     SD_2_gaussian = med.inpaint_with_SD_2(SD_2, gaussian_center, mask_image, findings, None)
     SD_2_low_dim = med.inpaint_with_SD_2(SD_2, degraded, mask_image, findings, None)
 
+    # # SD 3
+    # SD_3_mask = med.inpaint_with_SD_3(SD_3, center_mask, mask_image, findings, None)
+    # SD_3_gaussian = med.inpaint_with_SD_3(SD_3, gaussian_center, mask_image, findings, None)
+    # SD_3_low_dim = med.inpaint_with_SD_3(SD_3, degraded, mask_image, findings, None)
+
     del SD_1_5
     del SD_2
+    # del SD_3
     torch.cuda.empty_cache()
     torch.cuda.synchronize()
 
+    # return [SD_1_5_mask, SD_1_5_gaussian, SD_1_5_low_dim, SD_2_mask, SD_2_gaussian, SD_2_low_dim, SD_3_mask, SD_3_gaussian, SD_3_low_dim]
     return [SD_1_5_mask, SD_1_5_gaussian, SD_1_5_low_dim, SD_2_mask, SD_2_gaussian, SD_2_low_dim]
 
 def process_image(image_path, image_name, findings):
+    # SD_1_5_mask, SD_1_5_gaussian, SD_1_5_low_dim, SD_2_mask, SD_2_gaussian, SD_2_low_dim, SD_3_mask, SD_3_gaussian, SD_3_low_dim = mask_inpaint(image_path, image_name, findings)
     SD_1_5_mask, SD_1_5_gaussian, SD_1_5_low_dim, SD_2_mask, SD_2_gaussian, SD_2_low_dim = mask_inpaint(image_path, image_name, findings)
-
     all_captions = {}
     # BLIP
     all_captions['SD_1_5_mask_blip'] = med.blip_caption(SD_1_5_mask)
@@ -96,6 +119,9 @@ def process_image(image_path, image_name, findings):
     all_captions['SD_2_mask_blip'] = med.blip_caption(SD_2_mask)
     all_captions['SD_2_gaussian_blip'] = med.blip_caption(SD_2_gaussian)
     all_captions['SD_2_low_dim_blip'] = med.blip_caption(SD_2_low_dim)
+    # all_captions['SD_3_mask_blip'] = med.blip_caption(SD_3_mask)  
+    # all_captions['SD_3_gaussian_blip'] = med.blip_caption(SD_3_gaussian)
+    # all_captions['SD_3_low_dim_blip'] = med.blip_caption(SD_3_low_dim)
 
     # Qwen
     all_captions['SD_1_5_mask_qwen'] = med.qwen_caption(SD_1_5_mask)
@@ -104,6 +130,9 @@ def process_image(image_path, image_name, findings):
     all_captions['SD_2_mask_qwen'] = med.qwen_caption(SD_2_mask)
     all_captions['SD_2_gaussian_qwen'] = med.qwen_caption(SD_2_gaussian)
     all_captions['SD_2_low_dim_qwen'] = med.qwen_caption(SD_2_low_dim)
+    # all_captions['SD_3_mask_qwen'] = med.qwen_caption(SD_3_mask)
+    # all_captions['SD_3_gaussian_qwen'] = med.qwen_caption(SD_3_gaussian)
+    # all_captions['SD_3_low_dim_qwen'] = med.qwen_caption(SD_3_low_dim)
 
     # LLaVA
     all_captions['SD_1_5_mask_llava'] = med.llava_caption(SD_1_5_mask)
